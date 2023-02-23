@@ -1,13 +1,14 @@
 use std::collections::BTreeMap;
 
 #[derive(Debug)]
-enum Item {
+enum Item { //creating an enum which represents the types of data present in the bencoded .torrent file
     Int(usize),
     String(Vec<u8>),
     List(Vec<Item>),
     Dict(BTreeMap<Vec<u8>, Item>),
 }
 
+//function to parse int ==> i<number>e
 fn parse_int(str: &mut Vec<u8>) -> usize {
     let mut len: usize = 0;
     let mut int_string: String = String::new();
@@ -25,6 +26,7 @@ fn parse_int(str: &mut Vec<u8>) -> usize {
     int_string.parse::<usize>().unwrap()
 }
 
+//function to parse string ==> <length>:<literal>
 fn parse_str(str: &mut Vec<u8>) -> Vec<u8> {
     let mut int_len: usize = 0;
     let mut int_string: String = String::new();
@@ -45,6 +47,7 @@ fn parse_str(str: &mut Vec<u8>) -> Vec<u8> {
     s
 }
 
+//funciton to parse list ==> l<list_items>e
 fn parse_list(str: &mut Vec<u8>) -> Vec<Item> {
     str.drain(0..1);
     let mut list: Vec<Item> = Vec::<Item>::new();
@@ -62,6 +65,7 @@ fn parse_list(str: &mut Vec<u8>) -> Vec<Item> {
     list
 }
 
+//function to parse dict ==> d<key_value_pairs>e
 fn parse_dict(str: &mut Vec<u8>) -> BTreeMap<Vec<u8>, Item> {
     str.drain(0..1);
     let mut dict: BTreeMap<Vec<u8>, Item> = BTreeMap::new();
@@ -93,7 +97,7 @@ fn parse_dict(str: &mut Vec<u8>) -> BTreeMap<Vec<u8>, Item> {
 fn parse(str: &mut Vec<u8>) -> Vec<Item> {
     let mut tree: Vec<Item> = Vec::<Item>::new();
     while let Some(c) = str.get(0) {
-        match *c {
+        match *c {  //similar to switch case in C. matching the values to their bencoded start point
             b'i' => tree.push(Item::Int(parse_int(str))),
             b'l' => tree.push(Item::List(parse_list(str))),
             b'd' => tree.push(Item::Dict(parse_dict(str))),
@@ -105,9 +109,9 @@ fn parse(str: &mut Vec<u8>) -> Vec<Item> {
 }
 #[tokio::main]
 async fn main() {
-    // get arguments
-    let args = std::env::args().collect::<Vec<String>>();
-    let arg = if let Some(s) = args.get(1) {
+    // get arguments from the terminal
+    let args = std::env::args().collect::<Vec<String>>();   //args returns an iterator on whiich we use the collect method to turn it into a collection 
+    let arg = if let Some(s) = args.get(1) {    //we only take the fist argument entered in the command line
         s
     } else {
         eprintln!("no torrent file specified");
@@ -122,23 +126,24 @@ async fn main() {
             return;
         }
     };
+    
     let data = parse(&mut bytes);
     for entry in data {
         match entry{
-            Item::Int(i) => (), //println!("Integer: {}",i),
+            Item::Int(i) => println!("Integer: {}",i),
             Item::Dict(d) => {
                 println!("Dictionary:");
                 for (key, value) in d {
                     println!("\t- {:?} => {:?}", key, value);
                 }
             },
-            Item::String(s) =>  (),//println!("String: {:?}", s),
-            Item::List(l) => (),//{
-            //     println!("List:");
-            //     for subitem in l {
-            //         println!("\t- {:?}", subitem);
-            //     }
-            // },
+            Item::String(s) =>  println!("String: {:?}", s),
+            Item::List(l) => {
+                println!("List:");
+                for subitem in l {
+                    println!("\t- {:?}", subitem);
+                }
+            },
         }
     }
 }
